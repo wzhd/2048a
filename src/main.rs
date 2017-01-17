@@ -77,6 +77,7 @@ impl<'a> UI for TermboxUI<'a> {
         let cell_width = 6;
         let cell_height = 3;
 
+        self.draw_rectangle(0, 2, 32, 15, Color::Byte(137));
         for i in 0..rows {
             let x_coord = x + i * cell_width + i * 2;
 
@@ -89,7 +90,7 @@ impl<'a> UI for TermboxUI<'a> {
                 let num: String = format!("{}", grid[i][j]);
                 let x_text_offset = x_text_offset - num.len() / 4;
                 let tile_colour = match num.as_ref() {
-                    "0" => Color::Byte(172),
+                    "0" => Color::Byte(180),
                     "2" => Color::Byte(224),
                     "4" => Color::Byte(222),
                     "8" => Color::Byte(216),
