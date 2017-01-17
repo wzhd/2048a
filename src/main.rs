@@ -75,13 +75,11 @@ impl<'a> UI for TermboxUI<'a> {
     fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize) {
         let x = 0;
         let y = 2;
-        let width = 30;
-        let height = 18;
-        let cell_width = (width + 2 * rows) / cols;
-        let cell_height = height / rows;
+        let cell_width = 6;
+        let cell_height = 3;
 
         for i in 0..rows {
-            let x_coord = x + i * cell_width + i;
+            let x_coord = x + i * cell_width + i * 2;
 
             for j in 0..cols {
                 let y_coord = y + j * cell_height + j;
@@ -95,9 +93,8 @@ impl<'a> UI for TermboxUI<'a> {
                                     y_coord,
                                     cell_width,
                                     cell_height,
-                                    Color::Black,
-                                    Color::White,
-                                    Color::Black);
+                                    Color::Yellow,
+                                    );
                 if num != "0" {
                     self.rustbox.print(x_coord + x_text_offset,
                                        y_coord + y_text_offset,
@@ -123,11 +120,11 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_score(&self, text: String) {
-        self.draw_text(16, 1, text, Color::White, Color::Default);
+        self.draw_text(12, 1, text, Color::White, Color::Default);
     }
 
     fn draw_instructions(&self, text: String) {
-        self.draw_text(14, 22, text, Color::White, Color::Default);
+        self.draw_text(10, 17, text, Color::White, Color::Default);
     }
 }
 
@@ -144,35 +141,14 @@ impl<'a> TermboxUI<'a> {
         }
     }
 
-    fn draw_horizontal_line(&self, x: usize, y: usize, w: usize, fg: Color, bg: Color) {
-        for i in 0..w + 1 {
-            self.rustbox.print_char(x + i, y, rustbox::RB_NORMAL, fg, bg, '─');
-        }
-    }
-
-    fn draw_vertical_line(&self, x: usize, y: usize, h: usize, fg: Color, bg: Color) {
-        for i in 0..h + 1 {
-            self.rustbox.print_char(x, y + i, rustbox::RB_NORMAL, fg, bg, '│');
-        }
-    }
-
     fn draw_rectangle(&self,
                       x: usize,
                       y: usize,
                       w: usize,
                       h: usize,
                       fill: Color,
-                      fg: Color,
-                      bg: Color) {
+    ) {
         self.fill_area(x, y, w, h, fill, fill);
-        self.draw_horizontal_line(x, y, w, fg, bg);    // top
-        self.draw_horizontal_line(x, h + y, w, fg, bg);  // bottom
-        self.draw_vertical_line(x, y, h, fg, bg);      // left
-        self.draw_vertical_line(x + w, y, h, fg, bg);    // right
-        self.rustbox.print_char(x, y, rustbox::RB_NORMAL, fg, bg, '┌');
-        self.rustbox.print_char(x + w, y, rustbox::RB_NORMAL, fg, bg, '┐');
-        self.rustbox.print_char(x, y + h, rustbox::RB_NORMAL, fg, bg, '└');
-        self.rustbox.print_char(x + w, y + h, rustbox::RB_NORMAL, fg, bg, '┘');
     }
 
     fn draw_text(&self, x: usize, y: usize, line: String, fg: Color, bg: Color) -> (usize, usize) {
