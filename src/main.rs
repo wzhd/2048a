@@ -89,11 +89,19 @@ impl<'a> UI for TermboxUI<'a> {
                 let num: String = format!("{}", grid[i][j]);
                 let x_text_offset = x_text_offset - num.len() / 4;
                 let tile_colour = match num.as_ref() {
-                    "0" => Color::Byte(0x2a),
-                    "1" => Color::White,
-                    "2" => Color::Red,
-                    "4" => Color::Green,
-                    _ => Color::Red,
+                    "0" => Color::Byte(172),
+                    "2" => Color::Byte(224),
+                    "4" => Color::Byte(222),
+                    "8" => Color::Byte(216),
+                    "16" => Color::Byte(209),
+                    "32" => Color::Byte(202),
+                    "64" => Color::Byte(203),
+                    "128" => Color::Byte(230),
+                    "256" => Color::Byte(226),
+                    "512" => Color::Byte(193),
+                    "1024" => Color::Byte(190),
+                    "2048" => Color::Byte(214),
+                    _ => Color::Black,
                 };
                 self.draw_rectangle(x_coord,
                                     y_coord,
@@ -105,7 +113,7 @@ impl<'a> UI for TermboxUI<'a> {
                     self.rustbox.print(x_coord + x_text_offset,
                                        y_coord + y_text_offset,
                                        rustbox::RB_NORMAL,
-                                       Color::Black,
+                                       Color::Byte(232),
                                        tile_colour,
                                        &num);
                 }
