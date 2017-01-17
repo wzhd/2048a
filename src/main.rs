@@ -59,11 +59,11 @@ impl<'a> UI for TermboxUI<'a> {
         match self.rustbox.poll_event(false) {
             Ok(rustbox::Event::KeyEvent(key)) => {
                 match key {
-                    Some(RKey::Char('q')) => Some(Key::Char('q')),
-                    Some(RKey::Up) => Some(Key::Up),
-                    Some(RKey::Down) => Some(Key::Down),
-                    Some(RKey::Left) => Some(Key::Left),
-                    Some(RKey::Right) => Some(Key::Right),
+                    RKey::Char('q') => Some(Key::Char('q')),
+                    RKey::Up => Some(Key::Up),
+                    RKey::Down => Some(Key::Down),
+                    RKey::Left => Some(Key::Left),
+                    RKey::Right => Some(Key::Right),
                     _ => None,
                 }
             }
