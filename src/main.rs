@@ -6,7 +6,6 @@
 extern crate rustbox;
 extern crate rand;
 
-use std::default::Default;
 use std::fmt;
 use rand::distributions::{IndependentSample, Range};
 use rustbox::{Color, RustBox};
@@ -89,18 +88,25 @@ impl<'a> UI for TermboxUI<'a> {
 
                 let num: String = format!("{}", grid[i][j]);
                 let x_text_offset = x_text_offset - num.len() / 4;
+                let tile_colour = match num.as_ref() {
+                    "0" => Color::Byte(0x2a),
+                    "1" => Color::White,
+                    "2" => Color::Red,
+                    "4" => Color::Green,
+                    _ => Color::Red,
+                };
                 self.draw_rectangle(x_coord,
                                     y_coord,
                                     cell_width,
                                     cell_height,
-                                    Color::Yellow,
+                                    tile_colour,
                                     );
                 if num != "0" {
                     self.rustbox.print(x_coord + x_text_offset,
                                        y_coord + y_text_offset,
                                        rustbox::RB_NORMAL,
-                                       Color::White,
                                        Color::Black,
+                                       tile_colour,
                                        &num);
                 }
             }
@@ -112,19 +118,19 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_lost(&self) {
-        self.draw_text(16, 12, "You lost!".to_string(), Color::Red, Color::Default);
+        self.draw_text(16, 12, "You lost!".to_string(), Color::Red, Color::Black);
     }
 
     fn draw_won(&self) {
-        self.draw_text(16, 12, "You won!".to_string(), Color::Green, Color::Default);
+        self.draw_text(16, 12, "You won!".to_string(), Color::Green, Color::Black);
     }
 
     fn draw_score(&self, text: String) {
-        self.draw_text(12, 1, text, Color::White, Color::Default);
+        self.draw_text(12, 1, text, Color::White, Color::Black);
     }
 
     fn draw_instructions(&self, text: String) {
-        self.draw_text(10, 17, text, Color::White, Color::Default);
+        self.draw_text(10, 17, text, Color::White, Color::Black);
     }
 }
 
@@ -459,7 +465,12 @@ impl<'a> Game<'a> {
 }
 
 fn main() {
-    let rustbox = match RustBox::init(Default::default()) {
+    let rustbox = match RustBox::init(
+        rustbox::InitOptions {
+            input_mode: rustbox::InputMode::Current,
+            output_mode: rustbox::OutputMode::EightBit,
+            buffer_stderr: true,
+        }) {
         Result::Ok(v) => v,
         Result::Err(e) => panic!("{}", e),
     };
