@@ -72,12 +72,12 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize) {
-        let x = 0;
-        let y = 2;
+        let x = 2;
+        let y = 3;
         let cell_width = 6;
         let cell_height = 3;
 
-        self.draw_rectangle(0, 2, 32, 15, Color::Byte(137));
+        self.draw_rectangle(0, 2, 34, 17, Color::Byte(137));
         for i in 0..rows {
             let x_coord = x + i * cell_width + i * 2;
 
@@ -135,11 +135,11 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_score(&self, text: String) {
-        self.draw_text(12, 1, text, Color::White, Color::Black);
+        self.draw_text(13, 1, text, Color::White, Color::Black);
     }
 
     fn draw_instructions(&self, text: String) {
-        self.draw_text(10, 17, text, Color::White, Color::Black);
+        self.draw_text(11, 19, text, Color::White, Color::Black);
     }
 }
 
