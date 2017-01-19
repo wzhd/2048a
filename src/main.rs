@@ -41,6 +41,7 @@ pub enum Key {
 
 trait UI {
     fn wait_key(&self) -> Option<Key>;
+    fn draw_board(&self, x: usize, y: usize);
     fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize);
     fn present(&self);
     fn draw_lost(&self);
@@ -51,6 +52,7 @@ trait UI {
 
 struct TermboxUI<'a> {
     rustbox: &'a RustBox,
+    board: [[Color; 34]; 17],
 }
 
 impl<'a> UI for TermboxUI<'a> {
@@ -71,13 +73,28 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
+    fn draw_board(&self, x_offset: usize, y_offset: usize) {
+        let width = 34;
+        let height = 17;
+        for x in 0..width {
+            for y in 0..height {
+                let color = self.board[y][x];
+                self.rustbox.print_char(x + x_offset,
+                                   y + y_offset,
+                                   rustbox::RB_NORMAL,
+                                   color,
+                                   color,
+                                   ' ');
+            }
+        }
+    }
+
     fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize) {
         let x = 2;
         let y = 3;
         let cell_width = 6;
         let cell_height = 3;
 
-        self.draw_rectangle(0, 2, 34, 17, Color::Byte(137));
         for i in 0..rows {
             let x_coord = x + i * cell_width + i * 2;
 
@@ -90,7 +107,6 @@ impl<'a> UI for TermboxUI<'a> {
                 let num: String = format!("{}", grid[i][j]);
                 let x_text_offset = x_text_offset - num.len() / 4;
                 let tile_colour = match num.as_ref() {
-                    "0" => Color::Byte(180),
                     "2" => Color::Byte(224),
                     "4" => Color::Byte(222),
                     "8" => Color::Byte(216),
@@ -104,13 +120,13 @@ impl<'a> UI for TermboxUI<'a> {
                     "2048" => Color::Byte(214),
                     _ => Color::Black,
                 };
-                self.draw_rectangle(x_coord,
-                                    y_coord,
-                                    cell_width,
-                                    cell_height,
-                                    tile_colour,
-                                    );
                 if num != "0" {
+                    self.draw_rectangle(x_coord,
+                                        y_coord,
+                                        cell_width,
+                                        cell_height,
+                                        tile_colour,
+                    );
                     self.rustbox.print(x_coord + x_text_offset,
                                        y_coord + y_text_offset,
                                        rustbox::RB_NORMAL,
@@ -145,7 +161,31 @@ impl<'a> UI for TermboxUI<'a> {
 
 impl<'a> TermboxUI<'a> {
     fn new(rustbox: &'a rustbox::RustBox) -> TermboxUI<'a> {
-        TermboxUI { rustbox: rustbox }
+        const WIDTH: usize = 34;
+        const HEIGHT: usize = 17;
+        let mut board = [[Color::Byte(137); WIDTH]; HEIGHT];
+
+        let cell_width = 6;
+        let cell_height = 3;
+        let rows = 4;
+        let cols = 4;
+        for i in 0..rows {
+            for j in 0..cols {
+                let top = 1 + j * (cell_height + 1);
+                let left = 2 + i * (cell_width + 2);
+                if top + cell_height < HEIGHT && left + cell_width < WIDTH {
+                    for y in top .. top + cell_height {
+                        for x in left .. left + cell_width {
+                            board[y][x] = Color::Byte(180);
+                        }
+                    }
+                }
+            }
+        }
+        TermboxUI {
+            rustbox: rustbox,
+            board: board,
+        }
     }
 
     fn fill_area(&self, x: usize, y: usize, w: usize, h: usize, fg: Color, bg: Color) {
@@ -368,6 +408,7 @@ impl<'a> Game<'a> {
 
     fn draw(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
+        self.ui.draw_board(0, 2);
         self.ui.draw_grid(self.grid, 4, 4);
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
