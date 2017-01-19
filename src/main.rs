@@ -42,7 +42,7 @@ pub enum Key {
 trait UI {
     fn wait_key(&self) -> Option<Key>;
     fn draw_board(&self, x: usize, y: usize);
-    fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize);
+    fn draw_tile(&self, row: usize, col: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
     fn draw_won(&self);
@@ -89,52 +89,47 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
-    fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize) {
-        let x = 2;
-        let y = 3;
+    fn draw_tile(&self, row: usize, col: usize, tile: Tile) {
+        let x_offset = 2;
+        let y_offset = 3;
         let cell_width = 6;
         let cell_height = 3;
 
-        for i in 0..rows {
-            let x_coord = x + i * cell_width + i * 2;
+        let x_coord = x_offset + col * cell_width + col * 2;
+        let y_coord = y_offset + row * cell_height + row;
 
-            for j in 0..cols {
-                let y_coord = y + j * cell_height + j;
+        let x_text_offset = (cell_width as f64 / 2 as f64).floor() as usize;
+        let y_text_offset = (cell_height as f64 / 2 as f64).floor() as usize;
 
-                let x_text_offset = (cell_width as f64 / 2 as f64).floor() as usize;
-                let y_text_offset = (cell_height as f64 / 2 as f64).floor() as usize;
-
-                let num: String = format!("{}", grid[i][j]);
-                let x_text_offset = x_text_offset - num.len() / 4;
-                let tile_colour = match num.as_ref() {
-                    "2" => Color::Byte(224),
-                    "4" => Color::Byte(222),
-                    "8" => Color::Byte(216),
-                    "16" => Color::Byte(209),
-                    "32" => Color::Byte(202),
-                    "64" => Color::Byte(203),
-                    "128" => Color::Byte(230),
-                    "256" => Color::Byte(226),
-                    "512" => Color::Byte(193),
-                    "1024" => Color::Byte(190),
-                    "2048" => Color::Byte(214),
-                    _ => Color::Black,
-                };
-                if num != "0" {
-                    self.draw_rectangle(x_coord,
-                                        y_coord,
-                                        cell_width,
-                                        cell_height,
-                                        tile_colour,
-                    );
-                    self.rustbox.print(x_coord + x_text_offset,
-                                       y_coord + y_text_offset,
-                                       rustbox::RB_NORMAL,
-                                       Color::Byte(232),
-                                       tile_colour,
-                                       &num);
-                }
-            }
+        let num: String = format!("{}", tile);
+        let x_text_offset = x_text_offset - num.len() / 4;
+        let tile_colour = match num.as_ref() {
+            "2" => Color::Byte(224),
+            "4" => Color::Byte(222),
+            "8" => Color::Byte(216),
+            "16" => Color::Byte(209),
+            "32" => Color::Byte(202),
+            "64" => Color::Byte(203),
+            "128" => Color::Byte(230),
+            "256" => Color::Byte(226),
+            "512" => Color::Byte(193),
+            "1024" => Color::Byte(190),
+            "2048" => Color::Byte(214),
+            _ => Color::Black,
+        };
+        if num != "0" {
+            self.draw_rectangle(x_coord,
+                                y_coord,
+                                cell_width,
+                                cell_height,
+                                tile_colour,
+            );
+            self.rustbox.print(x_coord + x_text_offset,
+                               y_coord + y_text_offset,
+                               rustbox::RB_NORMAL,
+                               Color::Byte(232),
+                               tile_colour,
+                               &num);
         }
     }
 
@@ -289,14 +284,17 @@ impl<'a> Game<'a> {
             score: 0,
             moved: false,
         };
-        for _ in 0..2 {
-            g.add_tile();
-        }
 
         g
     }
 
     fn run(&mut self) {
+        self.ui.draw_board(0, 2);
+
+        for _ in 0..2 {
+            self.add_tile();
+        }
+
         loop {
             self.draw();
 
@@ -363,7 +361,10 @@ impl<'a> Game<'a> {
         while !self.grid[cell1.0 % 4][cell1.1 % 4].is_empty() {
             cell1 = rand::random::<(usize, usize)>();
         }
-        self.grid[cell1.0 % 4][cell1.1 % 4].set(if a > 0.9 { 4 } else { 2 });
+        let y = cell1.0 % 4;
+        let x = cell1.1 % 4;
+        self.grid[y][x].set(if a > 0.9 { 4 } else { 2 });
+        self.ui.draw_tile(y, x, self.grid[y][x]);
     }
 
     fn can_move(&self) -> bool {
@@ -408,8 +409,6 @@ impl<'a> Game<'a> {
 
     fn draw(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
-        self.ui.draw_board(0, 2);
-        self.ui.draw_grid(self.grid, 4, 4);
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         if self.state == State::Lost {
