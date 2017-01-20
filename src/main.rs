@@ -42,6 +42,7 @@ pub enum Key {
 trait UI {
     fn wait_key(&self) -> Option<Key>;
     fn draw_board(&self, x: usize, y: usize);
+    fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize);
     fn draw_tile(&self, row: usize, col: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
@@ -89,7 +90,15 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
-    fn draw_tile(&self, row: usize, col: usize, tile: Tile) {
+    fn draw_grid(&self, grid: [[Tile; 4]; 4], cols: usize, rows: usize) {
+        for x in 0..cols {
+            for y in 0..rows {
+                self.draw_tile(x, y, grid[x][y])
+            }
+        }
+    }
+
+    fn draw_tile(&self, col: usize, row: usize, tile: Tile) {
         let x_offset = 2;
         let y_offset = 3;
         let cell_width = 6;
@@ -364,7 +373,6 @@ impl<'a> Game<'a> {
         let y = cell1.0 % 4;
         let x = cell1.1 % 4;
         self.grid[y][x].set(if a > 0.9 { 4 } else { 2 });
-        self.ui.draw_tile(y, x, self.grid[y][x]);
     }
 
     fn can_move(&self) -> bool {
@@ -409,6 +417,8 @@ impl<'a> Game<'a> {
 
     fn draw(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
+        self.ui.draw_board(0, 2);
+        self.ui.draw_grid(self.grid, 4, 4);
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         if self.state == State::Lost {
