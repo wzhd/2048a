@@ -53,7 +53,7 @@ trait UI {
 
 struct TermboxUI<'a> {
     rustbox: &'a RustBox,
-    board: [[Color; 34]; 17],
+    board: [[Color; 17]; 34],
 }
 
 impl<'a> UI for TermboxUI<'a> {
@@ -79,7 +79,7 @@ impl<'a> UI for TermboxUI<'a> {
         let height = 17;
         for x in 0..width {
             for y in 0..height {
-                let color = self.board[y][x];
+                let color = self.board[x][y];
                 self.rustbox.print_char(x + x_offset,
                                    y + y_offset,
                                    rustbox::RB_NORMAL,
@@ -167,20 +167,20 @@ impl<'a> TermboxUI<'a> {
     fn new(rustbox: &'a rustbox::RustBox) -> TermboxUI<'a> {
         const WIDTH: usize = 34;
         const HEIGHT: usize = 17;
-        let mut board = [[Color::Byte(137); WIDTH]; HEIGHT];
+        let mut board = [[Color::Byte(137); HEIGHT]; WIDTH];
 
         let cell_width = 6;
         let cell_height = 3;
         let rows = 4;
         let cols = 4;
-        for i in 0..rows {
-            for j in 0..cols {
-                let top = 1 + j * (cell_height + 1);
+        for i in 0..cols {
+            for j in 0..rows {
                 let left = 2 + i * (cell_width + 2);
-                if top + cell_height < HEIGHT && left + cell_width < WIDTH {
-                    for y in top .. top + cell_height {
-                        for x in left .. left + cell_width {
-                            board[y][x] = Color::Byte(180);
+                let top = 1 + j * (cell_height + 1);
+                if left + cell_width < WIDTH && top + cell_height < HEIGHT {
+                    for x in left .. left + cell_width {
+                        for y in top .. top + cell_height{
+                            board[x][y] = Color::Byte(180);
                         }
                     }
                 }
