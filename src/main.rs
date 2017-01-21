@@ -42,7 +42,7 @@ pub enum Key {
 trait UI {
     fn wait_key(&self) -> Option<Key>;
     fn draw_board(&self, x: usize, y: usize);
-    fn draw_grid(&self, grid: [[Tile; 4]; 4], rows: usize, cols: usize);
+    fn draw_grid(&self, grid: [[Tile; 4]; 5], rows: usize, cols: usize);
     fn draw_tile(&self, row: usize, col: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
@@ -53,7 +53,7 @@ trait UI {
 
 struct TermboxUI<'a> {
     rustbox: &'a RustBox,
-    board: [[Color; 17]; 34],
+    board: [[Color; 17]; 42],
 }
 
 impl<'a> UI for TermboxUI<'a> {
@@ -75,7 +75,7 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_board(&self, x_offset: usize, y_offset: usize) {
-        let width = 34;
+        let width = 42;
         let height = 17;
         for x in 0..width {
             for y in 0..height {
@@ -90,7 +90,7 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
-    fn draw_grid(&self, grid: [[Tile; 4]; 4], cols: usize, rows: usize) {
+    fn draw_grid(&self, grid: [[Tile; 4]; 5], cols: usize, rows: usize) {
         for x in 0..cols {
             for y in 0..rows {
                 self.draw_tile(x, y, grid[x][y])
@@ -165,14 +165,14 @@ impl<'a> UI for TermboxUI<'a> {
 
 impl<'a> TermboxUI<'a> {
     fn new(rustbox: &'a rustbox::RustBox) -> TermboxUI<'a> {
-        const WIDTH: usize = 34;
+        const WIDTH: usize = 42;
         const HEIGHT: usize = 17;
         let mut board = [[Color::Byte(137); HEIGHT]; WIDTH];
 
         let cell_width = 6;
         let cell_height = 3;
         let rows = 4;
-        let cols = 4;
+        let cols = 5;
         for i in 0..cols {
             for j in 0..rows {
                 let left = 2 + i * (cell_width + 2);
@@ -278,7 +278,7 @@ enum State {
 
 struct Game<'a> {
     ui: &'a UI,
-    grid: [[Tile; 4]; 4],
+    grid: [[Tile; 4]; 5],
     state: State,
     score: usize,
     moved: bool,
@@ -288,7 +288,7 @@ impl<'a> Game<'a> {
     fn new(ui: &'a UI) -> Game<'a> {
         let mut g = Game {
             ui: ui,
-            grid: [[Tile::new(); 4]; 4],
+            grid: [[Tile::new(); 4]; 5],
             state: State::Playing,
             score: 0,
             moved: false,
@@ -332,7 +332,7 @@ impl<'a> Game<'a> {
                 }
             }
 
-            for i in 0..4 {
+            for i in 0..5 {
                 for j in 0..4 {
                     self.grid[i][j].blocked(false);
                 }
@@ -348,7 +348,7 @@ impl<'a> Game<'a> {
 
     fn add_tile(&mut self) {
         let mut cantadd = true;
-        'OUTER: for i in 0..4 {
+        'OUTER: for i in 0..5 {
             for j in 0..4 {
                 if self.grid[i][j].is_empty() {
                     cantadd = false;
@@ -370,13 +370,13 @@ impl<'a> Game<'a> {
         while !self.grid[cell1.0 % 4][cell1.1 % 4].is_empty() {
             cell1 = rand::random::<(usize, usize)>();
         }
-        let y = cell1.0 % 4;
-        let x = cell1.1 % 4;
-        self.grid[y][x].set(if a > 0.9 { 4 } else { 2 });
+        let x = cell1.0 % 5;
+        let y = cell1.1 % 4;
+        self.grid[x][y].set(if a > 0.9 { 4 } else { 2 });
     }
 
     fn can_move(&self) -> bool {
-        for i in 0..4 {
+        for i in 0..5 {
             for j in 0..4 {
                 if self.grid[i][j].is_empty() {
                     return true;
@@ -418,7 +418,7 @@ impl<'a> Game<'a> {
     fn draw(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
         self.ui.draw_board(0, 2);
-        self.ui.draw_grid(self.grid, 4, 4);
+        self.ui.draw_grid(self.grid, 5, 4);
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         if self.state == State::Lost {
@@ -457,7 +457,7 @@ impl<'a> Game<'a> {
 
             self.move_direction(x, yo, d);
         } else if d == Direction::Left || d == Direction::Right {
-            if x as i32 + o < 0 || x as i32 + o > 3 {
+            if x as i32 + o < 0 || x as i32 + o > 4 {
                 return;
             }
 
@@ -483,7 +483,7 @@ impl<'a> Game<'a> {
     }
 
     fn move_up(&mut self) {
-        for i in 0..4 {
+        for i in 0..5 {
             for j in 1..4 {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Up);
@@ -493,7 +493,7 @@ impl<'a> Game<'a> {
     }
 
     fn move_down(&mut self) {
-        for i in 0..4 {
+        for i in 0..5 {
             for j in (0..3).rev() {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Down);
@@ -504,7 +504,7 @@ impl<'a> Game<'a> {
 
     fn move_left(&mut self) {
         for j in 0..4 {
-            for i in 1..4 {
+            for i in 1..5 {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Left);
                 }
@@ -514,7 +514,7 @@ impl<'a> Game<'a> {
 
     fn move_right(&mut self) {
         for j in 0..4 {
-            for i in (0..3).rev() {
+            for i in (0..4).rev() {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Right);
                 }
