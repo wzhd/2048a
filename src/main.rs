@@ -28,12 +28,12 @@ enum Direction {
 }
 
 impl Direction {
-    fn offset(self) -> i32 {
+    fn offset(self) -> (i32, i32) {
         match self {
-            Direction::Up => -1,
-            Direction::Down => 1,
-            Direction::Left => -1,
-            Direction::Right => 1,
+            Direction::Up => (0, -1),
+            Direction::Down => (0, 1),
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
         }
     }
 }
@@ -442,67 +442,41 @@ impl<'a> Game<'a> {
     }
 
     fn move_direction(&mut self, x: usize, y: usize, d: Direction) {
-        let o = d.clone().offset();
+        let (xd, yd) = d.clone().offset();
 
-        if d == Direction::Up || d == Direction::Down {
-            let ynew: i32 = y as i32 + o;
-            if ynew < 0 || ynew > (NROWS - 1) as i32 {
-                return;
-            }
+        let xnew: i32 = x as i32 + xd;
+        let ynew: i32 = y as i32 + yd;
 
-            let yo: usize = ynew as usize;
-
-            if !self.grid[x][yo].is_empty() && self.grid[x][yo] == self.grid[x][y] &&
-               !self.grid[x][y].is_blocked() && !self.grid[x][yo].is_blocked() {
-                self.grid[x][y].set(0);
-                let val = self.grid[x][yo].get();
-                self.grid[x][yo].set(val * 2);
-                self.add_score(val * 2);
-                self.grid[x][yo].blocked(true);
-                self.moved = true;
-            } else if self.grid[x][yo].is_empty() && !self.grid[x][y].is_empty() {
-                let val = self.grid[x][y].get();
-                self.grid[x][yo].set(val);
-                self.grid[x][y].set(0);
-                self.moved = true;
-            }
-
-            self.ui.draw_tile_bg(x, y);
-            self.ui.draw_tile(x, y, self.grid[x][y]);
-            self.ui.draw_tile(x, yo, self.grid[x][yo]);
-            self.ui.present();
-
-            self.move_direction(x, yo, d);
-        } else if d == Direction::Left || d == Direction::Right {
-            let xnew: i32 = x as i32 + o;
-            if xnew < 0 || xnew > (NCOLS - 1) as i32 {
-                return;
-            }
-
-            let xo: usize = xnew as usize;
-
-            if !self.grid[xo][y].is_empty() && self.grid[xo][y] == self.grid[x][y] &&
-               !self.grid[x][y].is_blocked() && !self.grid[xo][y].is_blocked() {
-                self.grid[x][y].set(0);
-                let val = self.grid[xo][y].get();
-                self.grid[xo][y].set(val * 2);
-                self.add_score(val * 2);
-                self.grid[xo][y].blocked(true);
-                self.moved = true;
-            } else if self.grid[xo][y].is_empty() && !self.grid[x][y].is_empty() {
-                let val = self.grid[x][y].get();
-                self.grid[xo][y].set(val);
-                self.grid[x][y].set(0);
-                self.moved = true;
-            }
-
-            self.ui.draw_tile_bg(x, y);
-            self.ui.draw_tile(x, y, self.grid[x][y]);
-            self.ui.draw_tile(xo, y, self.grid[xo][y]);
-            self.ui.present();
-
-            self.move_direction(xo, y, d);
+        if ynew < 0 || ynew > (NROWS - 1) as i32 ||
+            xnew < 0 || xnew > (NCOLS - 1) as i32 {
+            return;
         }
+
+        let xnew: usize = xnew as usize;
+        let ynew: usize = ynew as usize;
+
+        if !self.grid[xnew][ynew].is_empty() && self.grid[xnew][ynew] == self.grid[x][y] &&
+            !self.grid[x][y].is_blocked() && !self.grid[xnew][ynew].is_blocked() {
+                self.grid[x][y].set(0);
+                let val = self.grid[xnew][ynew].get();
+                self.grid[xnew][ynew].set(val * 2);
+                self.add_score(val * 2);
+                self.grid[xnew][ynew].blocked(true);
+                self.moved = true;
+            }
+        else if self.grid[xnew][ynew].is_empty() && !self.grid[x][y].is_empty() {
+                let val = self.grid[x][y].get();
+                self.grid[xnew][ynew].set(val);
+                self.grid[x][y].set(0);
+                self.moved = true;
+        }
+
+        self.ui.draw_tile_bg(x, y);
+        self.ui.draw_tile(x, y, self.grid[x][y]);
+        self.ui.draw_tile(xnew, ynew, self.grid[xnew][ynew]);
+        self.ui.present();
+
+        self.move_direction(xnew, ynew, d);
     }
 
     fn move_up(&mut self) {
