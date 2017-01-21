@@ -52,6 +52,7 @@ trait UI {
     fn draw_bg(&self, left: usize, top: usize, width: usize, height: usize, x_offset: usize, y_offset: usize);
     fn draw_tile_bg(&self, col: usize, row: usize);
     fn draw_tile(&self, col: usize, row: usize, tile: Tile);
+    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize);
     fn present(&self);
     fn draw_lost(&self);
     fn draw_won(&self);
@@ -109,6 +110,10 @@ impl<'a> UI for TermboxUI<'a> {
         let x_coord = x_offset + col * CELL_WIDTH + col * 2;
         let y_coord = y_offset + row * CELL_HEIGHT + row;
 
+        self.draw_tile_at(tile, x_coord, y_coord);
+    }
+
+    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize) {
         let x_text_offset = (CELL_WIDTH as f64 / 2 as f64).floor() as usize;
         let y_text_offset = (CELL_HEIGHT as f64 / 2 as f64).floor() as usize;
 
