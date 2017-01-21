@@ -11,6 +11,14 @@ use rand::distributions::{IndependentSample, Range};
 use rustbox::{Color, RustBox};
 use rustbox::Key as RKey;
 
+const NCOLS: usize = 5;
+const NROWS: usize = 4;
+const CELL_WIDTH: usize = 6;
+const CELL_HEIGHT: usize = 3;
+const BOARD_WIDTH: usize = 2 + (CELL_WIDTH + 2) * NCOLS;
+const BOARD_HEIGHT: usize = 1 + (CELL_HEIGHT + 1) * NROWS;
+
+
 #[derive(PartialEq, Clone)]
 enum Direction {
     Up,
@@ -42,7 +50,7 @@ pub enum Key {
 trait UI {
     fn wait_key(&self) -> Option<Key>;
     fn draw_board(&self, x: usize, y: usize);
-    fn draw_grid(&self, grid: [[Tile; 4]; 5], rows: usize, cols: usize);
+    fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]);
     fn draw_tile(&self, row: usize, col: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
@@ -53,7 +61,7 @@ trait UI {
 
 struct TermboxUI<'a> {
     rustbox: &'a RustBox,
-    board: [[Color; 17]; 42],
+    board: [[Color; BOARD_HEIGHT]; BOARD_WIDTH],
 }
 
 impl<'a> UI for TermboxUI<'a> {
@@ -75,10 +83,8 @@ impl<'a> UI for TermboxUI<'a> {
     }
 
     fn draw_board(&self, x_offset: usize, y_offset: usize) {
-        let width = 42;
-        let height = 17;
-        for x in 0..width {
-            for y in 0..height {
+        for x in 0..BOARD_WIDTH {
+            for y in 0..BOARD_HEIGHT {
                 let color = self.board[x][y];
                 self.rustbox.print_char(x + x_offset,
                                    y + y_offset,
@@ -90,9 +96,9 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
-    fn draw_grid(&self, grid: [[Tile; 4]; 5], cols: usize, rows: usize) {
-        for x in 0..cols {
-            for y in 0..rows {
+    fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]) {
+        for x in 0.. NCOLS {
+            for y in 0.. NROWS {
                 self.draw_tile(x, y, grid[x][y])
             }
         }
@@ -101,14 +107,12 @@ impl<'a> UI for TermboxUI<'a> {
     fn draw_tile(&self, col: usize, row: usize, tile: Tile) {
         let x_offset = 2;
         let y_offset = 3;
-        let cell_width = 6;
-        let cell_height = 3;
 
-        let x_coord = x_offset + col * cell_width + col * 2;
-        let y_coord = y_offset + row * cell_height + row;
+        let x_coord = x_offset + col * CELL_WIDTH + col * 2;
+        let y_coord = y_offset + row * CELL_HEIGHT + row;
 
-        let x_text_offset = (cell_width as f64 / 2 as f64).floor() as usize;
-        let y_text_offset = (cell_height as f64 / 2 as f64).floor() as usize;
+        let x_text_offset = (CELL_WIDTH as f64 / 2 as f64).floor() as usize;
+        let y_text_offset = (CELL_HEIGHT as f64 / 2 as f64).floor() as usize;
 
         let num: String = format!("{}", tile);
         let x_text_offset = x_text_offset - num.len() / 4;
@@ -129,8 +133,8 @@ impl<'a> UI for TermboxUI<'a> {
         if num != "0" {
             self.draw_rectangle(x_coord,
                                 y_coord,
-                                cell_width,
-                                cell_height,
+                                CELL_WIDTH,
+                                CELL_HEIGHT,
                                 tile_colour,
             );
             self.rustbox.print(x_coord + x_text_offset,
@@ -165,21 +169,16 @@ impl<'a> UI for TermboxUI<'a> {
 
 impl<'a> TermboxUI<'a> {
     fn new(rustbox: &'a rustbox::RustBox) -> TermboxUI<'a> {
-        const WIDTH: usize = 42;
-        const HEIGHT: usize = 17;
-        let mut board = [[Color::Byte(137); HEIGHT]; WIDTH];
 
-        let cell_width = 6;
-        let cell_height = 3;
-        let rows = 4;
-        let cols = 5;
-        for i in 0..cols {
-            for j in 0..rows {
-                let left = 2 + i * (cell_width + 2);
-                let top = 1 + j * (cell_height + 1);
-                if left + cell_width < WIDTH && top + cell_height < HEIGHT {
-                    for x in left .. left + cell_width {
-                        for y in top .. top + cell_height{
+        let mut board = [[Color::Byte(137); BOARD_HEIGHT]; BOARD_WIDTH];
+
+        for i in 0..NCOLS {
+            for j in 0..NROWS {
+                let left = 2 + i * (CELL_WIDTH + 2);
+                let top = 1 + j * (CELL_HEIGHT + 1);
+                if left + CELL_WIDTH < BOARD_WIDTH && top + CELL_HEIGHT < BOARD_HEIGHT {
+                    for x in left .. left + CELL_WIDTH {
+                        for y in top .. top + CELL_HEIGHT{
                             board[x][y] = Color::Byte(180);
                         }
                     }
@@ -278,7 +277,7 @@ enum State {
 
 struct Game<'a> {
     ui: &'a UI,
-    grid: [[Tile; 4]; 5],
+    grid: [[Tile; NROWS]; NCOLS],
     state: State,
     score: usize,
     moved: bool,
@@ -288,7 +287,7 @@ impl<'a> Game<'a> {
     fn new(ui: &'a UI) -> Game<'a> {
         let mut g = Game {
             ui: ui,
-            grid: [[Tile::new(); 4]; 5],
+            grid: [[Tile::new(); NROWS]; NCOLS],
             state: State::Playing,
             score: 0,
             moved: false,
@@ -332,8 +331,8 @@ impl<'a> Game<'a> {
                 }
             }
 
-            for i in 0..5 {
-                for j in 0..4 {
+            for i in 0.. NCOLS {
+                for j in 0.. NROWS {
                     self.grid[i][j].blocked(false);
                 }
             }
@@ -348,8 +347,8 @@ impl<'a> Game<'a> {
 
     fn add_tile(&mut self) {
         let mut cantadd = true;
-        'OUTER: for i in 0..5 {
-            for j in 0..4 {
+        'OUTER: for i in 0.. NCOLS {
+            for j in 0.. NROWS {
                 if self.grid[i][j].is_empty() {
                     cantadd = false;
                     break 'OUTER;
@@ -367,17 +366,17 @@ impl<'a> Game<'a> {
         let a = between.ind_sample(&mut rng);
 
         let mut cell1 = rand::random::<(usize, usize)>();
-        while !self.grid[cell1.0 % 4][cell1.1 % 4].is_empty() {
+        while !self.grid[cell1.0 % NCOLS][cell1.1 % NROWS].is_empty() {
             cell1 = rand::random::<(usize, usize)>();
         }
-        let x = cell1.0 % 5;
-        let y = cell1.1 % 4;
+        let x = cell1.0 % NCOLS;
+        let y = cell1.1 % NROWS;
         self.grid[x][y].set(if a > 0.9 { 4 } else { 2 });
     }
 
     fn can_move(&self) -> bool {
-        for i in 0..5 {
-            for j in 0..4 {
+        for i in 0..NCOLS {
+            for j in 0..NROWS {
                 if self.grid[i][j].is_empty() {
                     return true;
                 }
@@ -418,7 +417,7 @@ impl<'a> Game<'a> {
     fn draw(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
         self.ui.draw_board(0, 2);
-        self.ui.draw_grid(self.grid, 5, 4);
+        self.ui.draw_grid(self.grid);
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         if self.state == State::Lost {
@@ -434,11 +433,12 @@ impl<'a> Game<'a> {
         let o = d.clone().offset();
 
         if d == Direction::Up || d == Direction::Down {
-            if y as i32 + o < 0 || y as i32 + o > 3 {
+            let ynew: i32 = y as i32 + o;
+            if ynew < 0 || ynew > (NROWS - 1) as i32 {
                 return;
             }
 
-            let yo: usize = (y as i32 + o) as usize;
+            let yo: usize = ynew as usize;
 
             if !self.grid[x][yo].is_empty() && self.grid[x][yo] == self.grid[x][y] &&
                !self.grid[x][y].is_blocked() && !self.grid[x][yo].is_blocked() {
@@ -457,11 +457,12 @@ impl<'a> Game<'a> {
 
             self.move_direction(x, yo, d);
         } else if d == Direction::Left || d == Direction::Right {
-            if x as i32 + o < 0 || x as i32 + o > 4 {
+            let xnew: i32 = x as i32 + o;
+            if xnew < 0 || xnew > (NCOLS - 1) as i32 {
                 return;
             }
 
-            let xo: usize = (x as i32 + o) as usize;
+            let xo: usize = xnew as usize;
 
             if !self.grid[xo][y].is_empty() && self.grid[xo][y] == self.grid[x][y] &&
                !self.grid[x][y].is_blocked() && !self.grid[xo][y].is_blocked() {
@@ -483,8 +484,8 @@ impl<'a> Game<'a> {
     }
 
     fn move_up(&mut self) {
-        for i in 0..5 {
-            for j in 1..4 {
+        for i in 0.. NCOLS {
+            for j in 1.. NROWS {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Up);
                 }
@@ -493,8 +494,8 @@ impl<'a> Game<'a> {
     }
 
     fn move_down(&mut self) {
-        for i in 0..5 {
-            for j in (0..3).rev() {
+        for i in 0.. NCOLS {
+            for j in (0.. NROWS - 1).rev() {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Down);
                 }
@@ -503,8 +504,8 @@ impl<'a> Game<'a> {
     }
 
     fn move_left(&mut self) {
-        for j in 0..4 {
-            for i in 1..5 {
+        for j in 0.. NROWS {
+            for i in 1.. NCOLS {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Left);
                 }
@@ -513,8 +514,8 @@ impl<'a> Game<'a> {
     }
 
     fn move_right(&mut self) {
-        for j in 0..4 {
-            for i in (0..4).rev() {
+        for j in 0.. NROWS {
+            for i in (0.. NCOLS - 1).rev() {
                 if !self.grid[i][j].is_empty() {
                     self.move_direction(i, j, Direction::Right);
                 }
