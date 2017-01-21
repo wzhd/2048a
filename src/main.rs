@@ -49,9 +49,10 @@ pub enum Key {
 
 trait UI {
     fn wait_key(&self) -> Option<Key>;
-    fn draw_board(&self, x: usize, y: usize);
+    fn draw_bg(&self, left: usize, top: usize, width: usize, height: usize, x_offset: usize, y_offset: usize);
+    fn draw_tile_bg(&self, col: usize, row: usize);
     fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]);
-    fn draw_tile(&self, row: usize, col: usize, tile: Tile);
+    fn draw_tile(&self, col: usize, row: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
     fn draw_won(&self);
@@ -82,9 +83,9 @@ impl<'a> UI for TermboxUI<'a> {
         }
     }
 
-    fn draw_board(&self, x_offset: usize, y_offset: usize) {
-        for x in 0..BOARD_WIDTH {
-            for y in 0..BOARD_HEIGHT {
+    fn draw_bg(&self, left: usize, top: usize, width: usize, height: usize, x_offset: usize, y_offset: usize) {
+        for x in left .. left + width {
+            for y in top .. top + height {
                 let color = self.board[x][y];
                 self.rustbox.print_char(x + x_offset,
                                    y + y_offset,
@@ -94,6 +95,12 @@ impl<'a> UI for TermboxUI<'a> {
                                    ' ');
             }
         }
+    }
+
+    fn draw_tile_bg(&self, col: usize, row: usize) {
+        let x_coord = 2 + col * (CELL_WIDTH + 2);
+        let y_coord = 1 + row * (CELL_HEIGHT + 1);
+        self.draw_bg(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, 0, 2);
     }
 
     fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]) {
@@ -297,15 +304,17 @@ impl<'a> Game<'a> {
     }
 
     fn run(&mut self) {
-        self.ui.draw_board(0, 2);
+        self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
+        self.ui.draw_bg(0, 0, BOARD_WIDTH, BOARD_HEIGHT, 0, 2);
 
         for _ in 0..2 {
             self.add_tile();
         }
 
-        loop {
-            self.draw();
+        self.ui.draw_grid(self.grid);
+        self.ui.present();
 
+        loop {
             self.moved = false;
 
             let key = self.ui.wait_key();
@@ -331,6 +340,8 @@ impl<'a> Game<'a> {
                 }
             }
 
+            self.draw_score();
+
             for i in 0.. NCOLS {
                 for j in 0.. NROWS {
                     self.grid[i][j].blocked(false);
@@ -338,14 +349,17 @@ impl<'a> Game<'a> {
             }
 
             if self.moved {
-                self.add_tile();
+                if let Some((x, y)) = self.add_tile() {
+                    self.ui.draw_tile(x, y, self.grid[x][y]);
+                    self.ui.present();
+                }
             } else if !self.can_move() {
                 self.state = State::Lost;
             }
         }
     }
 
-    fn add_tile(&mut self) {
+    fn add_tile(&mut self) -> Option<(usize, usize)> {
         let mut cantadd = true;
         'OUTER: for i in 0.. NCOLS {
             for j in 0.. NROWS {
@@ -358,7 +372,7 @@ impl<'a> Game<'a> {
 
         let cantmove = !self.can_move();
         if cantadd || cantmove {
-            return;
+            return None;
         }
 
         let between = Range::new(0f64, 1.);
@@ -372,6 +386,7 @@ impl<'a> Game<'a> {
         let x = cell1.0 % NCOLS;
         let y = cell1.1 % NROWS;
         self.grid[x][y].set(if a > 0.9 { 4 } else { 2 });
+        Some((x, y))
     }
 
     fn can_move(&self) -> bool {
@@ -414,11 +429,8 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn draw(&self) {
+    fn draw_score(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
-        self.ui.draw_board(0, 2);
-        self.ui.draw_grid(self.grid);
-        self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         if self.state == State::Lost {
             self.ui.draw_lost();
@@ -455,6 +467,11 @@ impl<'a> Game<'a> {
                 self.moved = true;
             }
 
+            self.ui.draw_tile_bg(x, y);
+            self.ui.draw_tile(x, y, self.grid[x][y]);
+            self.ui.draw_tile(x, yo, self.grid[x][yo]);
+            self.ui.present();
+
             self.move_direction(x, yo, d);
         } else if d == Direction::Left || d == Direction::Right {
             let xnew: i32 = x as i32 + o;
@@ -478,6 +495,11 @@ impl<'a> Game<'a> {
                 self.grid[x][y].set(0);
                 self.moved = true;
             }
+
+            self.ui.draw_tile_bg(x, y);
+            self.ui.draw_tile(x, y, self.grid[x][y]);
+            self.ui.draw_tile(xo, y, self.grid[xo][y]);
+            self.ui.present();
 
             self.move_direction(xo, y, d);
         }
