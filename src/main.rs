@@ -19,7 +19,7 @@ const BOARD_WIDTH: usize = 2 + (CELL_WIDTH + 2) * NCOLS;
 const BOARD_HEIGHT: usize = 1 + (CELL_HEIGHT + 1) * NROWS;
 
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 enum Direction {
     Up,
     Down,
@@ -318,20 +318,14 @@ impl<'a> Game<'a> {
             }
 
             if self.state != State::Lost && self.state != State::Won {
-                match key {
-                    Some(Key::Up) => {
-                        self.move_up();
-                    }
-                    Some(Key::Down) => {
-                        self.move_down();
-                    }
-                    Some(Key::Left) => {
-                        self.move_left();
-                    }
-                    Some(Key::Right) => {
-                        self.move_right();
-                    }
-                    _ => {}
+                if let Some(direc) = match key {
+                    Some(Key::Up) => Some(Direction::Up),
+                    Some(Key::Down) => Some(Direction::Down),
+                    Some(Key::Left) => Some(Direction::Left),
+                    Some(Key::Right) => Some(Direction::Right),
+                    _ => None,
+                } {
+                    self.move_all(direc);
                 }
             }
 
@@ -474,41 +468,11 @@ impl<'a> Game<'a> {
         self.move_direction(xnew, ynew, d);
     }
 
-    fn move_up(&mut self) {
+    fn move_all(&mut self, direc: Direction) {
         for i in 0.. NCOLS {
-            for j in 1.. NROWS {
+            for j in 0.. NROWS {
                 if !self.grid[i][j].is_empty() {
-                    self.move_direction(i, j, Direction::Up);
-                }
-            }
-        }
-    }
-
-    fn move_down(&mut self) {
-        for i in 0.. NCOLS {
-            for j in (0.. NROWS - 1).rev() {
-                if !self.grid[i][j].is_empty() {
-                    self.move_direction(i, j, Direction::Down);
-                }
-            }
-        }
-    }
-
-    fn move_left(&mut self) {
-        for j in 0.. NROWS {
-            for i in 1.. NCOLS {
-                if !self.grid[i][j].is_empty() {
-                    self.move_direction(i, j, Direction::Left);
-                }
-            }
-        }
-    }
-
-    fn move_right(&mut self) {
-        for j in 0.. NROWS {
-            for i in (0.. NCOLS - 1).rev() {
-                if !self.grid[i][j].is_empty() {
-                    self.move_direction(i, j, Direction::Right);
+                    self.move_direction(i, j, direc);
                 }
             }
         }
