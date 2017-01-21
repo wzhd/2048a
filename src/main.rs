@@ -292,15 +292,13 @@ struct Game<'a> {
 
 impl<'a> Game<'a> {
     fn new(ui: &'a UI) -> Game<'a> {
-        let mut g = Game {
+        Game {
             ui: ui,
             grid: [[Tile::new(); NROWS]; NCOLS],
             state: State::Playing,
             score: 0,
             moved: false,
-        };
-
-        g
+        }
     }
 
     fn run(&mut self) {
