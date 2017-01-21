@@ -51,7 +51,6 @@ trait UI {
     fn wait_key(&self) -> Option<Key>;
     fn draw_bg(&self, left: usize, top: usize, width: usize, height: usize, x_offset: usize, y_offset: usize);
     fn draw_tile_bg(&self, col: usize, row: usize);
-    fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]);
     fn draw_tile(&self, col: usize, row: usize, tile: Tile);
     fn present(&self);
     fn draw_lost(&self);
@@ -101,14 +100,6 @@ impl<'a> UI for TermboxUI<'a> {
         let x_coord = 2 + col * (CELL_WIDTH + 2);
         let y_coord = 1 + row * (CELL_HEIGHT + 1);
         self.draw_bg(x_coord, y_coord, CELL_WIDTH, CELL_HEIGHT, 0, 2);
-    }
-
-    fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]) {
-        for x in 0.. NCOLS {
-            for y in 0.. NROWS {
-                self.draw_tile(x, y, grid[x][y])
-            }
-        }
     }
 
     fn draw_tile(&self, col: usize, row: usize, tile: Tile) {
@@ -306,10 +297,11 @@ impl<'a> Game<'a> {
         self.ui.draw_bg(0, 0, BOARD_WIDTH, BOARD_HEIGHT, 0, 2);
 
         for _ in 0..2 {
-            self.add_tile();
+            if let Some((x, y)) = self.add_tile() {
+                self.ui.draw_tile(x, y, self.grid[x][y]);
+            }
         }
 
-        self.ui.draw_grid(self.grid);
         self.ui.present();
 
         loop {
