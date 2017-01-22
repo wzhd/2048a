@@ -112,7 +112,9 @@ impl<'a> UI for TermboxUI<'a> {
         let x_coord = x_offset + col * CELL_WIDTH + col * 2;
         let y_coord = y_offset + row * CELL_HEIGHT + row;
 
-        self.draw_tile_at(tile, x_coord, y_coord);
+        if tile.is_visible() {
+            self.draw_tile_at(tile, x_coord, y_coord);
+        }
     }
 
     fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize) {
@@ -226,6 +228,7 @@ impl<'a> TermboxUI<'a> {
 struct Tile {
     _value: usize,
     _blocked: bool,
+    _visible: bool,
 }
 
 impl Tile {
@@ -233,6 +236,7 @@ impl Tile {
         Tile {
             _value: 0,
             _blocked: false,
+            _visible: true,
         }
     }
 
@@ -255,6 +259,15 @@ impl Tile {
     fn is_blocked(&self) -> bool {
         return self._blocked;
     }
+
+    fn set_visible(&mut self, v: bool) {
+        self._visible = v;
+    }
+
+    fn is_visible(&self) -> bool {
+        return self._visible;
+    }
+
 }
 
 impl fmt::Display for Tile {
