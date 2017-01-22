@@ -13,7 +13,7 @@ use rand::distributions::{IndependentSample, Range};
 use rustbox::{Color, RustBox};
 use rustbox::Key as RKey;
 
-const NCOLS: usize = 5;
+const NCOLS: usize = 4;
 const NROWS: usize = 4;
 const CELL_WIDTH: usize = 6;
 const CELL_HEIGHT: usize = 3;
