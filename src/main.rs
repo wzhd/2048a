@@ -488,6 +488,7 @@ impl<'a> Game<'a> {
         let xnew: usize = xnew as usize;
         let ynew: usize = ynew as usize;
 
+        let mut tilemoved = false;
         if !self.grid[xnew][ynew].is_empty() && self.grid[xnew][ynew] == self.grid[x][y] &&
             !self.grid[x][y].is_blocked() && !self.grid[xnew][ynew].is_blocked() {
                 self.grid[x][y].set(0);
@@ -496,15 +497,21 @@ impl<'a> Game<'a> {
                 self.add_score(val * 2);
                 self.grid[xnew][ynew].blocked(true);
                 self.moved = true;
+                tilemoved = true;
             }
         else if self.grid[xnew][ynew].is_empty() && !self.grid[x][y].is_empty() {
-                let val = self.grid[x][y].get();
-                self.grid[xnew][ynew].set(val);
-                self.grid[x][y].set(0);
-                self.moved = true;
+            let val = self.grid[x][y].get();
+            self.grid[xnew][ynew].set(val);
+            self.grid[x][y].set(0);
+            self.moved = true;
+            tilemoved = true;
         }
 
-        self.move_direction(xnew, ynew, d)
+        if tilemoved {
+            self.move_direction(xnew, ynew, d)
+        } else {
+            (x, y)
+        }
     }
 
     fn move_all(&mut self, direc: Direction) {
