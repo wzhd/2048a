@@ -311,6 +311,11 @@ struct Movement {
     pnew: Point,
 }
 
+struct Appearing {
+    position: Point,
+    value: usize,
+}
+
 struct Game<'a> {
     ui: &'a UI,
     grid: [[Tile; NROWS]; NCOLS],
@@ -319,6 +324,8 @@ struct Game<'a> {
     moved: bool,
     /// Vector containing tiles and their original position and destination
     tiles_moving: Vec<Movement>,
+    /// where new tiles are appearing
+    points_appearing: Vec<Appearing>,
     /// The time when the latest movement started
     animation_start: time::Instant,
 }
@@ -332,6 +339,7 @@ impl<'a> Game<'a> {
             score: 0,
             moved: false,
             tiles_moving: Vec::new(),
+            points_appearing: Vec::new(),
             animation_start: time::Instant::now(),
         }
     }
@@ -415,9 +423,10 @@ impl<'a> Game<'a> {
         while !self.grid[cell1.0 % NCOLS][cell1.1 % NROWS].is_empty() {
             cell1 = rand::random::<(usize, usize)>();
         }
-        let x = cell1.0 % NCOLS;
-        let y = cell1.1 % NROWS;
-        self.grid[x][y].set(if a > 0.9 { 4 } else { 2 });
+        self.points_appearing.push(Appearing {
+            value: if a > 0.9 { 4 } else { 2 },
+            position: Point { x: cell1.0 % NCOLS, y: cell1.1 % NROWS},
+        });
     }
 
     fn can_move(&self) -> bool {
@@ -465,6 +474,10 @@ impl<'a> Game<'a> {
             self.grid[m.pnew.x][m.pnew.y].set_pending(false);
         }
         self.tiles_moving.truncate(0);
+        for a in &self.points_appearing {
+            self.grid[a.position.x][a.position.y].set(a.value);
+        }
+        self.points_appearing.truncate(0);
     }
 
     fn draw_moving(&mut self) {
