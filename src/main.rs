@@ -318,6 +318,8 @@ struct Game<'a> {
     moved: bool,
     /// Vector containing tiles and their original position and destination
     tiles_moving: Vec<Movement>,
+    /// The time when the latest movement started
+    animation_start: time::Instant,
 }
 
 impl<'a> Game<'a> {
@@ -329,6 +331,7 @@ impl<'a> Game<'a> {
             score: 0,
             moved: false,
             tiles_moving: Vec::new(),
+            animation_start: time::Instant::now(),
         }
     }
 
@@ -357,6 +360,7 @@ impl<'a> Game<'a> {
             }
 
             // finish any on-going animation immediately
+            self.finish_animation();
 
             // start moving
             if self.state != State::Lost && self.state != State::Won {
@@ -382,6 +386,7 @@ impl<'a> Game<'a> {
             } else if !self.can_move() {
                 self.state = State::Lost;
             }
+            self.animation_start = time::Instant::now();
         }
     }
 
@@ -454,14 +459,43 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn draw(&mut self) {
-        self.ui.draw_score(format!("Score: {}", self.score));
-        self.ui.draw_bg(0, 2);
-
+    fn finish_animation(&mut self) {
         for m in &self.tiles_moving {
             self.grid[m.pnew.x][m.pnew.y].set_visible(true);
         }
         self.tiles_moving.truncate(0);
+    }
+
+    fn draw_moving(&mut self) {
+        // duration of the entire animation in milliseconds
+        let animation_duration: u16 = 500;
+        let elapsed: u16 = self.animation_start.elapsed().as_secs() as u16 * 1000
+            + (self.animation_start.elapsed().subsec_nanos() / 1000000) as u16;
+        if elapsed > animation_duration {
+            self.finish_animation();
+            return;
+        }
+        let ratio: f32 = elapsed as f32 / animation_duration as f32;
+
+        for m in &self.tiles_moving {
+            let col = m.pold.x as f32 + (m.pnew.x as f32 - m.pold.x as f32) * ratio;
+            let row = m.pold.y as f32 + (m.pnew.y as f32 - m.pold.y as f32) * ratio;
+
+            let x_offset = 2.0;
+            let y_offset = 3.0;
+
+            let x_now = x_offset + col * CELL_WIDTH as f32 + col * 2.0;
+            let y_now = y_offset + row * CELL_HEIGHT as f32 + row;
+
+            self.ui.draw_tile_at(m.tile, x_now as usize, y_now as usize);
+        }
+    }
+
+    fn draw(&mut self) {
+        self.ui.draw_score(format!("Score: {}", self.score));
+        self.ui.draw_bg(0, 2);
+
+        self.draw_moving();
 
         self.ui.draw_grid(self.grid);
 
