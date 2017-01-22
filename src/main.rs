@@ -53,8 +53,8 @@ trait UI {
     fn wait_key(&self, Option<u64>) -> Option<Key>;
     fn draw_bg(&self, x_offset: usize, y_offset: usize);
     fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]);
-    fn draw_tile(&self, col: usize, row: usize, tile: Tile);
-    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize);
+    fn draw_tile(&self, col: usize, row: usize, tile: Tile, partial: Option<f32>);
+    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize, partial: Option<f32>);
     fn present(&self);
     fn draw_lost(&self);
     fn draw_won(&self);
@@ -106,27 +106,29 @@ impl<'a> UI for TermboxUI<'a> {
     fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]) {
         for x in 0.. NCOLS {
             for y in 0.. NROWS {
-                self.draw_tile(x, y, grid[x][y])
+                self.draw_tile(x, y, grid[x][y], None)
             }
         }
     }
 
-    fn draw_tile(&self, col: usize, row: usize, tile: Tile) {
+    fn draw_tile(&self, col: usize, row: usize, tile: Tile, partial: Option<f32>) {
         let x_offset = 2;
         let y_offset = 3;
 
         let x_coord = x_offset + col * CELL_WIDTH + col * 2;
         let y_coord = y_offset + row * CELL_HEIGHT + row;
 
-        self.draw_tile_at(tile, x_coord, y_coord);
+        self.draw_tile_at(tile, x_coord, y_coord, partial);
     }
 
-    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize) {
+    fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize, partial: Option<f32>) {
         let x_text_offset = (CELL_WIDTH as f64 / 2 as f64).floor() as usize;
         let y_text_offset = (CELL_HEIGHT as f64 / 2 as f64).floor() as usize;
+        let x_centre = x_coord + x_text_offset;
+        let y_centre = y_coord + y_text_offset;
 
         let num: String = format!("{}", tile);
-        let x_text_offset = x_text_offset - num.len() / 4;
+        let x_text_pos = x_centre - num.len() / 2;
         let tile_colour = match num.as_ref() {
             "2" => Color::Byte(224),
             "4" => Color::Byte(222),
@@ -142,14 +144,30 @@ impl<'a> UI for TermboxUI<'a> {
             _ => Color::Black,
         };
         if num != "0" {
-            self.draw_rectangle(x_coord,
-                                y_coord,
-                                CELL_WIDTH,
-                                CELL_HEIGHT,
-                                tile_colour,
-            );
-            self.rustbox.print(x_coord + x_text_offset,
-                               y_coord + y_text_offset,
+            if let Some(ratio) = partial {
+                for column in 0 .. CELL_WIDTH {
+                    for row in 0 .. CELL_HEIGHT {
+                        let x = x_coord + column;
+                        let y = y_coord + row;
+                        if (x as f32 - x_centre as f32).abs() < CELL_WIDTH as f32 * ratio / 2.0
+                            || (y as f32 - y_centre as f32).abs() < CELL_HEIGHT as f32 * ratio / 2.0 {
+                            self.rustbox.print_char(x, y,
+                                                    rustbox::RB_NORMAL,
+                                                    tile_colour,
+                                                    tile_colour, ' ');
+                        }
+                    }
+                }
+            } else {
+                self.draw_rectangle(x_coord,
+                                    y_coord,
+                                    CELL_WIDTH,
+                                    CELL_HEIGHT,
+                                    tile_colour,
+                );
+            }
+            self.rustbox.print(x_text_pos,
+                               y_centre,
                                rustbox::RB_NORMAL,
                                Color::Byte(232),
                                tile_colour,
@@ -241,6 +259,15 @@ impl Tile {
     fn new() -> Tile {
         Tile {
             _value: 0,
+            _value_old: 0,
+            _blocked: false,
+            _pending: false,
+        }
+    }
+
+    fn from_value(value: usize) -> Tile {
+        Tile {
+            _value: value,
             _value_old: 0,
             _blocked: false,
             _pending: false,
@@ -474,23 +501,28 @@ impl<'a> Game<'a> {
             self.grid[m.pnew.x][m.pnew.y].set_pending(false);
         }
         self.tiles_moving.truncate(0);
+
         for a in &self.points_appearing {
             self.grid[a.position.x][a.position.y].set(a.value);
         }
         self.points_appearing.truncate(0);
     }
 
-    fn draw_moving(&mut self) {
+    fn get_progress(&self) -> f32 {
+        // how much of the animation has been done
         // duration of the entire animation in milliseconds
         let animation_duration: u16 = 500;
         let elapsed: u16 = self.animation_start.elapsed().as_secs() as u16 * 1000
             + (self.animation_start.elapsed().subsec_nanos() / 1000000) as u16;
-        if elapsed > animation_duration {
+        elapsed as f32 / animation_duration as f32
+    }
+
+    fn draw_moving(&mut self) {
+        let ratio = self.get_progress();
+        if ratio > 0.99 {
             self.finish_animation();
             return;
         }
-        let ratio: f32 = elapsed as f32 / animation_duration as f32;
-
         for m in &self.tiles_moving {
             let col = m.pold.x as f32 + (m.pnew.x as f32 - m.pold.x as f32) * ratio;
             let row = m.pold.y as f32 + (m.pnew.y as f32 - m.pold.y as f32) * ratio;
@@ -501,7 +533,21 @@ impl<'a> Game<'a> {
             let x_now = x_offset + col * CELL_WIDTH as f32 + col * 2.0;
             let y_now = y_offset + row * CELL_HEIGHT as f32 + row;
 
-            self.ui.draw_tile_at(m.tile, x_now as usize, y_now as usize);
+            self.ui.draw_tile_at(m.tile, x_now as usize, y_now as usize, None);
+        }
+
+        for a in &self.points_appearing {
+            let x_offset = 2.0;
+            let y_offset = 3.0;
+            let col = a.position.x as f32;
+            let row = a.position.y as f32;
+
+            let x = x_offset + col * CELL_WIDTH as f32 + col * 2.0;
+            let y = y_offset + row * CELL_HEIGHT as f32 + row;
+
+            self.ui.draw_tile_at(Tile::from_value(a.value),
+                                 x as usize, y as usize,
+                                 Some(ratio));
         }
     }
 
