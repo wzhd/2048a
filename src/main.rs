@@ -7,6 +7,8 @@ extern crate rustbox;
 extern crate rand;
 
 use std::fmt;
+use std::time;
+
 use rand::distributions::{IndependentSample, Range};
 use rustbox::{Color, RustBox};
 use rustbox::Key as RKey;
@@ -48,7 +50,7 @@ pub enum Key {
 }
 
 trait UI {
-    fn wait_key(&self) -> Option<Key>;
+    fn wait_key(&self, Option<u64>) -> Option<Key>;
     fn draw_bg(&self, x_offset: usize, y_offset: usize);
     fn draw_grid(&self, grid: [[Tile; NROWS]; NCOLS]);
     fn draw_tile(&self, col: usize, row: usize, tile: Tile);
@@ -66,8 +68,12 @@ struct TermboxUI<'a> {
 }
 
 impl<'a> UI for TermboxUI<'a> {
-    fn wait_key(&self) -> Option<Key> {
-        match self.rustbox.poll_event(false) {
+    fn wait_key(&self, timeout: Option<u64>) -> Option<Key> {
+        let event = match timeout {
+            Some(time) => self.rustbox.peek_event(std::time::Duration::from_millis(time), false),
+            None => self.rustbox.poll_event(false),
+        };
+        match event {
             Ok(rustbox::Event::KeyEvent(key)) => {
                 match key {
                     RKey::Char('q') => Some(Key::Char('q')),
@@ -337,11 +343,22 @@ impl<'a> Game<'a> {
             self.draw();
             self.moved = false;
 
-            let key = self.ui.wait_key();
+            let key = if self.tiles_moving.len() > 0 {
+                // when there are tiles waiting to be moved, wait for a short time
+                self.ui.wait_key(Some(10))
+            } else {
+                self.ui.wait_key(None)
+            };
+
             if key == Some(Key::Char('q')) {
                 break;
+            } else if key == None {
+                continue;
             }
 
+            // finish any on-going animation immediately
+
+            // start moving
             if self.state != State::Lost && self.state != State::Won {
                 if let Some(direc) = match key {
                     Some(Key::Up) => Some(Direction::Up),
