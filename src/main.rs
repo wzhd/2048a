@@ -317,12 +317,8 @@ impl<'a> Game<'a> {
         self.ui.draw_instructions("←,↑,→,↓ or q".to_string());
 
         for _ in 0..2 {
-            if let Some((x, y)) = self.add_tile() {
-                self.ui.draw_tile(x, y, self.grid[x][y]);
-            }
+            self.add_tile();
         }
-
-        self.ui.present();
 
         loop {
             self.draw();
@@ -359,7 +355,7 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn add_tile(&mut self) -> Option<(usize, usize)> {
+    fn add_tile(&mut self) {
         let mut cantadd = true;
         'OUTER: for i in 0.. NCOLS {
             for j in 0.. NROWS {
@@ -372,7 +368,7 @@ impl<'a> Game<'a> {
 
         let cantmove = !self.can_move();
         if cantadd || cantmove {
-            return None;
+            return;
         }
 
         let between = Range::new(0f64, 1.);
@@ -386,7 +382,6 @@ impl<'a> Game<'a> {
         let x = cell1.0 % NCOLS;
         let y = cell1.1 % NROWS;
         self.grid[x][y].set(if a > 0.9 { 4 } else { 2 });
-        Some((x, y))
     }
 
     fn can_move(&self) -> bool {
