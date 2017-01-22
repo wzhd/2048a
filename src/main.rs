@@ -278,12 +278,25 @@ enum State {
     Lost,
 }
 
+struct Point {
+    x: usize,
+    y: usize,
+}
+
+struct Movement {
+    tile: Tile,
+    pold: Point,
+    pnew: Point,
+}
+
 struct Game<'a> {
     ui: &'a UI,
     grid: [[Tile; NROWS]; NCOLS],
     state: State,
     score: usize,
     moved: bool,
+    /// Vector containing tiles and their original position and destination
+    tiles_moving: Vec<Movement>,
 }
 
 impl<'a> Game<'a> {
@@ -294,6 +307,7 @@ impl<'a> Game<'a> {
             state: State::Playing,
             score: 0,
             moved: false,
+            tiles_moving: Vec::new(),
         }
     }
 
@@ -418,6 +432,16 @@ impl<'a> Game<'a> {
         }
     }
 
+    fn process_moving(&mut self) {
+        for m in &self.tiles_moving {
+            self.ui.draw_tile_bg(m.pold.x, m.pold.y);
+            self.ui.draw_tile(m.pnew.x, m.pnew.y,
+                              self.grid[m.pnew.x][m.pnew.y]);
+        }
+        self.ui.present();
+        self.tiles_moving.truncate(0);
+    }
+
     fn draw_score(&self) {
         self.ui.draw_score(format!("Score: {}", self.score));
 
@@ -430,7 +454,7 @@ impl<'a> Game<'a> {
         self.ui.present();
     }
 
-    fn move_direction(&mut self, x: usize, y: usize, d: Direction) {
+    fn move_direction(&mut self, x: usize, y: usize, d: Direction) -> (usize, usize) {
         let (xd, yd) = d.clone().offset();
 
         let xnew: i32 = x as i32 + xd;
@@ -438,7 +462,7 @@ impl<'a> Game<'a> {
 
         if ynew < 0 || ynew > (NROWS - 1) as i32 ||
             xnew < 0 || xnew > (NCOLS - 1) as i32 {
-            return;
+            return (x, y);
         }
 
         let xnew: usize = xnew as usize;
@@ -459,20 +483,27 @@ impl<'a> Game<'a> {
                 self.grid[x][y].set(0);
                 self.moved = true;
         }
-
         self.ui.draw_tile_bg(x, y);
         self.ui.draw_tile(x, y, self.grid[x][y]);
         self.ui.draw_tile(xnew, ynew, self.grid[xnew][ynew]);
         self.ui.present();
 
-        self.move_direction(xnew, ynew, d);
+        self.move_direction(xnew, ynew, d)
     }
 
     fn move_all(&mut self, direc: Direction) {
         for i in 0.. NCOLS {
             for j in 0.. NROWS {
-                if !self.grid[i][j].is_empty() {
-                    self.move_direction(i, j, direc);
+                let tile = self.grid[i][j];
+                if !tile.is_empty() {
+                    let (inew, jnew) = self.move_direction(i, j, direc);
+                    if inew != i || jnew != j {
+                        self.tiles_moving.push(Movement {
+                            tile: tile,
+                            pold: Point { x: i, y: j},
+                            pnew: Point { x: inew, y: jnew},
+                        });
+                    }
                 }
             }
         }
