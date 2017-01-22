@@ -437,18 +437,15 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn process_moving(&mut self) {
-        for m in &self.tiles_moving {
-            self.ui.draw_tile(m.pnew.x, m.pnew.y,
-                              self.grid[m.pnew.x][m.pnew.y]);
-        }
-        self.ui.present();
-        self.tiles_moving.truncate(0);
-    }
-
-    fn draw(&self) {
+    fn draw(&mut self) {
         self.ui.draw_score(format!("Score: {}", self.score));
         self.ui.draw_bg(0, 2);
+
+        for m in &self.tiles_moving {
+            self.grid[m.pnew.x][m.pnew.y].set_visible(true);
+        }
+        self.tiles_moving.truncate(0);
+
         self.ui.draw_grid(self.grid);
 
         if self.state == State::Lost {
@@ -500,7 +497,9 @@ impl<'a> Game<'a> {
                 if !tile.is_empty() {
                     let (inew, jnew) = self.move_direction(i, j, direc);
                     if inew != i || jnew != j {
+                        self.grid[inew][jnew].set_visible(false);
                         self.tiles_moving.push(Movement {
+                            // it's not grid[i][j], which may have changed
                             tile: tile,
                             pold: Point { x: i, y: j},
                             pnew: Point { x: inew, y: jnew},
