@@ -118,9 +118,7 @@ impl<'a> UI for TermboxUI<'a> {
         let x_coord = x_offset + col * CELL_WIDTH + col * 2;
         let y_coord = y_offset + row * CELL_HEIGHT + row;
 
-        if tile.is_visible() {
-            self.draw_tile_at(tile, x_coord, y_coord);
-        }
+        self.draw_tile_at(tile, x_coord, y_coord);
     }
 
     fn draw_tile_at(&self, tile: Tile, x_coord: usize, y_coord: usize) {
@@ -233,25 +231,33 @@ impl<'a> TermboxUI<'a> {
 #[derive(Copy, Clone)]
 struct Tile {
     _value: usize,
+    _value_old: usize,
     _blocked: bool,
-    _visible: bool,
+    /// the tile changed, but the old value should be shown before animation is done
+    _pending: bool,
 }
 
 impl Tile {
     fn new() -> Tile {
         Tile {
             _value: 0,
+            _value_old: 0,
             _blocked: false,
-            _visible: true,
+            _pending: false,
         }
     }
 
     fn set(&mut self, val: usize) {
+        self._value_old = self._value;
         self._value = val;
     }
 
     fn get(&self) -> usize {
-        self._value
+        if self._pending {
+            self._value_old
+        } else {
+            self._value
+        }
     }
 
     fn is_empty(&self) -> bool {
@@ -266,19 +272,14 @@ impl Tile {
         return self._blocked;
     }
 
-    fn set_visible(&mut self, v: bool) {
-        self._visible = v;
+    fn set_pending(&mut self, pending: bool) {
+        self._pending = pending;
     }
-
-    fn is_visible(&self) -> bool {
-        return self._visible;
-    }
-
 }
 
 impl fmt::Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self._value)
+        write!(f, "{}", self.get())
     }
 }
 
@@ -461,7 +462,7 @@ impl<'a> Game<'a> {
 
     fn finish_animation(&mut self) {
         for m in &self.tiles_moving {
-            self.grid[m.pnew.x][m.pnew.y].set_visible(true);
+            self.grid[m.pnew.x][m.pnew.y].set_pending(false);
         }
         self.tiles_moving.truncate(0);
     }
@@ -555,7 +556,7 @@ impl<'a> Game<'a> {
                 if !tile.is_empty() {
                     let (inew, jnew) = self.move_direction(i, j, direc);
                     if inew != i || jnew != j {
-                        self.grid[inew][jnew].set_visible(false);
+                        self.grid[inew][jnew].set_pending(true);
                         self.tiles_moving.push(Movement {
                             // it's not grid[i][j], which may have changed
                             tile: tile,
