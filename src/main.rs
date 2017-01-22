@@ -382,7 +382,8 @@ impl<'a> Game<'a> {
             self.draw();
             self.moved = false;
 
-            let key = if self.tiles_moving.len() > 0 {
+            let key = if self.tiles_moving.len() > 0
+                || self.points_appearing.len() > 0 {
                 // when there are tiles waiting to be moved, wait for a short time
                 self.ui.wait_key(Some(10))
             } else {
