@@ -1,7 +1,7 @@
 [package]
-name = "2048"
-version = "0.1.0"
-authors = ["Kevin Darlington <kevin@outroot.com>"]
+name = "2048a"
+version = "0.2.0"
+authors = ["Zihao Wang <2048a@wzhd.org>"]
 
 [dependencies]
 rustbox = "*"
