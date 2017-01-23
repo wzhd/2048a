@@ -150,7 +150,7 @@ impl<'a> UI for TermboxUI<'a> {
                         let x = x_coord + column;
                         let y = y_coord + row;
                         if (x as f32 - x_centre as f32).abs() < CELL_WIDTH as f32 * ratio / 2.0
-                            || (y as f32 - y_centre as f32).abs() < CELL_HEIGHT as f32 * ratio / 2.0 {
+                            && (y as f32 - y_centre as f32).abs() < CELL_HEIGHT as f32 * ratio / 2.0 {
                             self.rustbox.print_char(x, y,
                                                     rustbox::RB_NORMAL,
                                                     tile_colour,
